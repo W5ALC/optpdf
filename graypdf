@@ -1,0 +1,42 @@
+#!/bin/bash
+#
+# optpdf file.pdf
+#   This script will attempt to optimize the given pdf
+#
+
+
+for i in "$@"
+do
+
+  file="$i"
+  filebase=$(basename "$file" .pdf)
+  optfile=/tmp/$$-${filebase}_gray.pdf
+  echo "$i"
+
+  if gs -sDEVICE=pdfwrite -sColorConversionStrategy=Gray -dProcessColorModel=/DeviceGray -dCompatibiltyLevel=1.4 -dSAFER -dNOPAUSE -dBATCH  -sOutputFile="${optfile}" "${file}"; then
+    optsize=$(stat -c "%s" "${optfile}")
+    orgsize=$(stat -c "%s" "${file}")
+    if [ "${optsize}" -eq 0 ]; then
+      echo "No output!  Keeping original"
+      rm -f "${optfile}"
+      exit;
+    fi
+    if [ "${optsize}" -ge "${orgsize}" ]; then
+      echo "Didn't make it smaller! Keeping original"
+      rm -f "${optfile}"
+      exit;
+    fi
+    if [ "$2" == "-k" && "$2" != ""]; then
+      bytesSaved=$((orgsize - optsize))
+      percent=$((optsize * 100 / orgsize))
+      echo Saving Gray file with original \("${percent}"% of original file\)
+      mv "${optfile}" "${file%.pdf}_gray.pdf"
+    fi
+      bytesSaved=$((orgsize - optsize))
+      percent=$((optsize * 100 / orgsize))
+      echo Saving "$bytesSaved" bytes \(now "${percent}"% of old\)
+      rm "${file}"
+      mv "${optfile}" "${file}"
+fi
+
+done
